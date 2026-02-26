@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Путешествие: Мариинский -> Эрмитаж</title>
+    <style>
+        /* Основные стили */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #2c3e50;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        h1 { color: #ecf0f1; text-transform: uppercase; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+
+        /* Игровое поле */
+        .game-board {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            max-width: 1150px;
+            margin: 0 auto 30px auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+        }
+
+        .cell {
+            width: 125px;
+            height: 145px;
+            border: 3px solid #bdc3c7;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding-top: 10px;
+            position: relative;
+            background-color: #ecf0f1;
+        }
+
+        .cell.start { background-color: #ffeaa7; border-color: #fdcb6e; }
+        .cell.finish { background-color: #55efc4; border-color: #00b894; }
+        .cell.location { background-color: #74b9ff; border-color: #0984e3; color: white; }
+        .cell.traffic { background-color: #ff7675; border-color: #d63031; color: white; }
+        .cell.crosswalk { 
+            background: repeating-linear-gradient(45deg, #636e72, #636e72 10px, #dfe6e9 10px, #dfe6e9 20px);
+            border-color: #2d3436;
+        }
+
+        .cell-icon { font-size: 42px; margin-bottom: 5px; }
+        .cell-title { font-size: 11px; font-weight: bold; text-transform: uppercase; padding: 0 5px; line-height: 1.1; }
+        .cell-number { position: absolute; top: 4px; left: 6px; font-size: 11px; font-weight: bold; color: #7f8c8d; }
+
+        /* Фишки */
+        .tokens-area {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+            flex-wrap: wrap;
+            margin-top: auto;
+            margin-bottom: 8px;
+            width: 100%;
+        }
+
+        .token {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid white;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.4);
+        }
+        .token.plus { background-color: #e84393; }
+        .token.minus { background-color: #0984e3; }
+        .token.mult { background-color: #00b894; }
+
+        /* Панель управления */
+        .controls {
+            background: white;
+            max-width: 850px;
+            margin: 0 auto 20px auto;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+
+        #question-display {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 25px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            border-left: 12px solid #f39c12;
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .answer-text {
+            color: #27ae60;
+            margin-top: 15px;
+            font-size: 28px;
+            font-weight: 900;
+            border-top: 3px dashed #eee;
+            padding-top: 15px;
+        }
+
+        .btn-row { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; }
+        
+        button {
+            padding: 18px 30px;
+            font-size: 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 5px 0 rgba(0,0,0,0.2);
+        }
+        button:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,0.2); }
+
+        .btn-plus { background-color: #e84393; }
+        .btn-minus { background-color: #0984e3; }
+        .btn-mult { background-color: #00b894; }
+        .btn-next { background-color: #f39c12; width: 100%; max-width: 350px; }
+        .btn-start { background-color: #2c3e50; width: 100%; max-width: 350px; }
+
+        #log-message { margin-top: 25px; font-weight: bold; font-size: 20px; color: #2c3e50; }
+
+        /* Подпись */
+        footer {
+            margin-top: auto;
+            padding: 20px;
+            font-size: 12px;
+            color: #95a5a6;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Путешествие по Петербургу</h1>
+
+    <div class="game-board" id="board"></div>
+
+    <div class="controls">
+        <div id="question-display">Нажмите СТАРТ, чтобы начать игру!</div>
+        
+        <div id="start-area">
+            <button class="btn-start" onclick="initGame()">НАЧАТЬ ИГРУ</button>
+        </div>
+
+        <div id="next-area" style="display: none;">
+            <button class="btn-next" onclick="revealAnswer()">ПОКАЗАТЬ ОТВЕТ</button>
+        </div>
+
+        <div id="play-area" style="display: none;">
+            <p style="margin-bottom: 15px; font-weight: bold;">Кто ответил правильно?</p>
+            <div class="btn-row">
+                <button class="btn-mult" onclick="makeMove('mult')">Умножение (×)</button>
+                <button class="btn-plus" onclick="makeMove('plus')">Плюс (+)</button>
+                <button class="btn-minus" onclick="makeMove('minus')">Минус (−)</button>
+            </div>
+        </div>
+
+        <div id="log-message"></div>
+    </div>
+
+    <footer>автор Александр Кузнецов</footer>
+
+<script>
+    const mapConfig = [
+        { name: "Мариинский театр", type: "start", icon: "🎭" },
+        { name: "Светофор", type: "traffic", icon: "🚦" },
+        { name: "Переход", type: "crosswalk", icon: "" },
+        { name: "Петергоф", type: "location", icon: "⛲️" },
+        { name: "Светофор", type: "traffic", icon: "🚦" },
+        { name: "Переход", type: "crosswalk", icon: "" },
+        { name: "Царское село", type: "location", icon: "👑" },
+        { name: "Светофор", type: "traffic", icon: "🚦" },
+        { name: "Переход", type: "crosswalk", icon: "" },
+        { name: "Исаакиевский собор", type: "location", icon: "⛪️" },
+        { name: "Светофор", type: "traffic", icon: "🚦" },
+        { name: "Переход", type: "crosswalk", icon: "" },
+        { name: "Эрмитаж", type: "finish", icon: "🏛" }
+    ];
+
+    const questionsBase = [
+        { q: "В каком году основан Санкт-Петербург?", a: "1703" },
+        { q: "Главная река города?", a: "Нева" },
+        { q: "Кто основал город?", a: "Пётр I" },
+        { q: "Самый известный разводной мост?", a: "Дворцовый" },
+        { q: "Сколько коней на Аничковом мосту?", a: "4 коня" },
+        { q: "Главный музей в Зимнем дворце?", a: "Эрмитаж" },
+        { q: "Как называются светлые ночи летом?", a: "Белые ночи" }
+    ];
+
+    let questions = [];
+    let currentQuestion = null;
+    let players = {
+        'mult': { symbol: "×", pos: 0, class: "mult", name: "Умножение" },
+        'plus': { symbol: "+", pos: 0, class: "plus", name: "Плюс" },
+        'minus': { symbol: "−", pos: 0, class: "minus", name: "Минус" }
+    };
+
+    function drawBoard() {
+        const board = document.getElementById('board');
+        board.innerHTML = '';
+        mapConfig.forEach((cell, i) => {
+            board.innerHTML += `
+                <div class="cell ${cell.type}">
+                    <div class="cell-number">${i}</div>
+                    <div class="cell-icon">${cell.icon}</div>
+                    <div class="cell-title">${cell.name}</div>
+                    <div class="tokens-area" id="cell-tokens-${i}"></div>
+                </div>`;
+        });
+        renderTokens();
+    }
+
+    function renderTokens() {
+        document.querySelectorAll('.tokens-area').forEach(a => a.innerHTML = '');
+        for (let key in players) {
+            const p = players[key];
+            const area = document.getElementById(`cell-tokens-${p.pos}`);
+            if (area) {
+                area.innerHTML += `<div class="token ${p.class}">${p.symbol}</div>`;
+            }
+        }
+    }
+
+    function initGame() {
+        for (let key in players) players[key].pos = 0;
+        questions = [...questionsBase].sort(() => Math.random() - 0.5);
+        document.getElementById('start-area').style.display = 'none';
+        drawBoard();
+        askQuestion();
+    }
+
+    function askQuestion() {
+        if (questions.length === 0) questions = [...questionsBase].sort(() => Math.random() - 0.5);
+        currentQuestion = questions.pop();
+        document.getElementById('question-display').innerHTML = `ВОПРОС: ${currentQuestion.q}`;
+        document.getElementById('next-area').style.display = 'block';
+        document.getElementById('play-area').style.display = 'none';
+        document.getElementById('log-message').innerText = "";
+    }
+
+    function revealAnswer() {
+        document.getElementById('question-display').innerHTML += `<div class="answer-text">ОТВЕТ: ${currentQuestion.a}</div>`;
+        document.getElementById('next-area').style.display = 'none';
+        document.getElementById('play-area').style.display = 'block';
+    }
+
+    function makeMove(playerKey) {
+        const r = Math.random() * 100;
+        let steps = 0;
+
+        // Вероятность: 3 (85%), 4 (10%), 5 (5%)
+        if (r < 85) steps = 3;
+        else if (r < 95) steps = 4;
+        else steps = 5;
+
+        const p = players[playerKey];
+        p.pos += steps;
+
+        if (p.pos >= mapConfig.length - 1) {
+            p.pos = mapConfig.length - 1;
+            renderTokens();
+            document.getElementById('question-display').innerHTML = `🏆 ПОБЕДА! Команда "${p.name}" дошла до Эрмитажа!`;
+            document.getElementById('play-area').style.display = 'none';
+            document.getElementById('start-area').style.display = 'block';
+            return;
+        }
+
+        renderTokens();
+        document.getElementById('log-message').innerHTML = `Команда ${p.name} +${steps} шага. Станция: ${mapConfig[p.pos].name}`;
+        document.getElementById('play-area').style.display = 'none';
+        setTimeout(askQuestion, 2000);
+    }
+
+    drawBoard();
+</script>
+</body>
+</html>
